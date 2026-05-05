@@ -1280,7 +1280,7 @@
           </div>
           <div class="instruction">
             <b>2. Three levels</b>
-            <span>Level 1: 15 soal / 40 detik, Level 2: 15 soal / 35 detik, Level 3: 15 soal / 30 detik.</span>
+            <span>Level 1: 30 soal / 45 detik, Level 2: 30 soal / 35 detik, Level 3: 30 soal / 30 detik.</span>
           </div>
           <div class="instruction">
             <b>3. Beat the timer</b>
@@ -1447,12 +1447,10 @@
   </div>
 
   <script>
-    const SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzokm3uwuqoQACnwjo9kASpOlUJfN-QQQqeOkYiQBQOmiKP7ZSC53AIhSLsecy6JaGkOQ/exec";
-
     const levelConfig = [
-      { questions: 15, time: 40, requiredClicks: 1, label: "Level 1", maxScore: 30 },
-      { questions: 15, time: 35, requiredClicks: 2, label: "Level 2", maxScore: 30 },
-      { questions: 15, time: 30, requiredClicks: 3, label: "Level 3", maxScore: 40 },
+      { questions: 30, time: 45, requiredClicks: 1, label: "Level 1", maxScore: 30 },
+      { questions: 30, time: 35, requiredClicks: 2, label: "Level 2", maxScore: 30 },
+      { questions: 30, time: 30, requiredClicks: 3, label: "Level 3", maxScore: 40 },
     ];
 
     const keyToDirection = {
@@ -1468,6 +1466,8 @@
       right: "Kanan",
       down: "Bawah",
     };
+
+    const SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxPXoqI2GgV6bKRn1l8lFNVoimLxgfPevPYbNCL2ENtl0t1TUAV23vmK__bZc_gPtutRw/exec";
 
     let level = 0;
     let questionIndex = 0;
@@ -1526,125 +1526,6 @@
     function average(nums) {
       if (!nums.length) return 0;
       return nums.reduce((a, b) => a + b, 0) / nums.length;
-    }
-
-    function getAttemptCounter() {
-      const current = Number(localStorage.getItem("mbd_attempt_counter_v1") || "0");
-      const next = current + 1;
-      localStorage.setItem("mbd_attempt_counter_v1", String(next));
-      return next;
-    }
-
-    function buildResponseLogText() {
-      return levelQuestionLogs.map((logs, idx) => ({
-        level: idx + 1,
-        logs: logs.map(q => ({
-          questionNo: q.questionNo,
-          correct: q.correct,
-          skipped: q.skipped,
-          totalResponseMs: q.totalResponseMs,
-          targets: q.targets,
-          clicks: q.clicks
-        }))
-      }));
-    }
-
-    function buildLevelQuestionPayload(levelIndex) {
-      const logs = levelQuestionLogs[levelIndex] || [];
-
-      return logs.map(q => ({
-        q: q.questionNo || 0,
-        answer: Array.isArray(q.clicks) ? q.clicks.map(c => c.pressed).filter(Boolean).join("|") : "",
-        key: Array.isArray(q.targets) ? q.targets.join("|") : "",
-        result: q.skipped ? "dilewati" : (q.correct ? "benar" : "salah"),
-        correct: !!q.correct,
-        skipped: !!q.skipped,
-        clicks: q.clicks || [],
-        targets: q.targets || [],
-        totalResponseMs: q.totalResponseMs || 0
-      }));
-    }
-
-    function buildQuestionString(list, field) {
-      return (list || [])
-        .slice(0, 15)
-        .map(item => {
-          if (!item) return "";
-          const val = item[field];
-          if (Array.isArray(val)) return val.join("|");
-          return String(val ?? "");
-        })
-        .join("||");
-    }
-
-    function buildLeaderboardSnapshot() {
-      return JSON.parse(localStorage.getItem("mbd_leaderboard_v6") || "[]");
-    }
-
-    async function sendToSheet(summary, attemptNo) {
-      const playerName = document.getElementById("playerName").value.trim();
-      const playerEmail = document.getElementById("playerEmail").value.trim();
-
-      const l1 = summary.levelDetails?.[0] || {};
-      const l2 = summary.levelDetails?.[1] || {};
-      const l3 = summary.levelDetails?.[2] || {};
-
-      const level1Questions = buildLevelQuestionPayload(0);
-      const level2Questions = buildLevelQuestionPayload(1);
-      const level3Questions = buildLevelQuestionPayload(2);
-
-      const params = new URLSearchParams({
-        source: "MatchByDirection",
-        localTime: new Date().toLocaleString("id-ID"),
-        playerName,
-        playerEmail,
-        attemptNo: String(attemptNo ?? ""),
-
-        finalScore: String(summary.finalScore ?? 0),
-        accuracyScore: String(summary.accuracyScore ?? 0),
-        speedScore: String(summary.speedScore ?? 0),
-        totalCorrect: String(summary.totalCorrect ?? 0),
-        totalWrong: String(summary.totalWrong ?? 0),
-        totalSkipped: String(summary.totalSkipped ?? 0),
-        totalQuestions: String(summary.totalQuestions ?? 0),
-        totalAllowedTime: String(summary.totalAllowedTime ?? 0),
-        totalTimeUsed: String(summary.totalTimeUsed ?? 0),
-        avgResponseMs: String(Math.round(average(summary.levelDetails.map(x => x.avgResponseMs || 0)))),
-
-        level1_correct: String(l1.correct ?? 0),
-        level1_wrong: String(l1.wrong ?? 0),
-        level1_skipped: String(l1.skipped ?? 0),
-        level1_accuracy: String(l1.accuracyScore ?? 0),
-        level1_speed: String(l1.speedScore ?? 0),
-        level1_avgResponseMs: String(l1.avgResponseMs ?? 0),
-        level1_questions: JSON.stringify(level1Questions),
-
-        level2_correct: String(l2.correct ?? 0),
-        level2_wrong: String(l2.wrong ?? 0),
-        level2_skipped: String(l2.skipped ?? 0),
-        level2_accuracy: String(l2.accuracyScore ?? 0),
-        level2_speed: String(l2.speedScore ?? 0),
-        level2_avgResponseMs: String(l2.avgResponseMs ?? 0),
-        level2_questions: JSON.stringify(level2Questions),
-
-        level3_correct: String(l3.correct ?? 0),
-        level3_wrong: String(l3.wrong ?? 0),
-        level3_skipped: String(l3.skipped ?? 0),
-        level3_accuracy: String(l3.accuracyScore ?? 0),
-        level3_speed: String(l3.speedScore ?? 0),
-        level3_avgResponseMs: String(l3.avgResponseMs ?? 0),
-        level3_questions: JSON.stringify(level3Questions)
-      });
-
-      try {
-        await fetch(SHEET_WEBAPP_URL, {
-          method: "POST",
-          mode: "no-cors",
-          body: params
-        });
-      } catch (err) {
-        console.warn("Gagal kirim data ke Sheet:", err);
-      }
     }
 
     function startGame() {
@@ -2098,95 +1979,71 @@
       box.innerHTML = allLevels;
     }
 
-    function getCategory(finalScore) {
-      if (finalScore >= 85) {
-        return {
-          title: "🟢 SANGAT CEPAT & TEPAT",
-          desc: "Kinerja sangat baik. Ketepatan jawaban dan kecepatan respon sama-sama tinggi.",
-          className: "good"
-        };
-      }
+    async function sendToSheet(summary) {
+      const playerName = document.getElementById("playerName").value.trim() || "";
+      const playerEmail = document.getElementById("playerEmail").value.trim() || "";
+      const attemptNo = getNextAttemptNumber();
 
-      if (finalScore >= 70) {
-        return {
-          title: "🟡 CUKUP CEPAT & TEPAT",
-          desc: "Kemampuan cukup baik, namun masih bisa ditingkatkan pada bagian kecepatan atau ketelitian.",
-          className: "warn"
-        };
-      }
+      const level1 = summary.levelDetails?.[0] || {};
+      const level2 = summary.levelDetails?.[1] || {};
+      const level3 = summary.levelDetails?.[2] || {};
 
-      return {
-        title: "🔴 PERLU LATIHAN",
-        desc: "Kecepatan dan ketepatan masih perlu ditingkatkan, terutama pada level dengan jumlah klik lebih banyak.",
-        className: "bad"
-      };
-    }
+      const payload = new URLSearchParams({
+        source: "Match by Direction",
+        localTime: new Date().toLocaleString("id-ID"),
+        playerName,
+        playerEmail,
+        attemptNo: String(attemptNo),
 
-    function saveLeaderboard(summary) {
-      const playerName = document.getElementById("playerName").value.trim() || "Player";
-      const playerEmail = document.getElementById("playerEmail").value.trim() || "-";
-      const data = JSON.parse(localStorage.getItem("mbd_leaderboard_v6") || "[]");
-      const attemptNo = getAttemptCounter();
+        finalScore: String(summary.finalScore),
+        accuracyScore: String(summary.accuracyScore),
+        speedScore: String(summary.speedScore),
+        totalCorrect: String(summary.totalCorrect),
+        totalWrong: String(summary.totalWrong),
+        totalSkipped: String(summary.totalSkipped),
+        totalQuestions: String(summary.totalQuestions),
+        totalAllowedTime: String(summary.totalAllowedTime),
+        totalTimeUsed: String(summary.totalTimeUsed),
+        avgResponseMs: String(Math.round(average(summary.levelDetails.map(x => x.avgResponseMs || 0)))),
 
-      data.push({
-        name: playerName,
-        email: playerEmail,
-        attemptNo,
-        score: summary.finalScore,
-        accuracyScore: summary.accuracyScore,
-        speedScore: summary.speedScore,
-        totalCorrect: summary.totalCorrect,
-        totalQuestions: summary.totalQuestions,
-        totalTimeUsed: summary.totalTimeUsed,
-        totalSkipped: summary.totalSkipped,
-        avgResponseMs: Math.round(average(summary.levelDetails.map(x => x.avgResponseMs))),
-        time: new Date().toLocaleString("id-ID")
+        level1_correct: String(level1.correct ?? 0),
+        level1_wrong: String(level1.wrong ?? 0),
+        level1_skipped: String(level1.skipped ?? 0),
+        level1_accuracy: String(level1.accuracyScore ?? 0),
+        level1_speed: String(level1.speedScore ?? 0),
+        level1_avgResponseMs: String(level1.avgResponseMs ?? 0),
+
+        level2_correct: String(level2.correct ?? 0),
+        level2_wrong: String(level2.wrong ?? 0),
+        level2_skipped: String(level2.skipped ?? 0),
+        level2_accuracy: String(level2.accuracyScore ?? 0),
+        level2_speed: String(level2.speedScore ?? 0),
+        level2_avgResponseMs: String(level2.avgResponseMs ?? 0),
+
+        level3_correct: String(level3.correct ?? 0),
+        level3_wrong: String(level3.wrong ?? 0),
+        level3_skipped: String(level3.skipped ?? 0),
+        level3_accuracy: String(level3.accuracyScore ?? 0),
+        level3_speed: String(level3.speedScore ?? 0),
+        level3_avgResponseMs: String(level3.avgResponseMs ?? 0),
+
+        level1_questions: JSON.stringify(level1.logs || []),
+        level2_questions: JSON.stringify(level2.logs || []),
+        level3_questions: JSON.stringify(level3.logs || []),
+
+        responseLog: JSON.stringify(summary.levelDetails || []),
+        leaderboardSnapshot: JSON.stringify(JSON.parse(localStorage.getItem("mbd_leaderboard_v6") || "[]"))
       });
 
-      data.sort((a, b) =>
-        b.score - a.score ||
-        b.accuracyScore - a.accuracyScore ||
-        b.speedScore - a.speedScore ||
-        a.totalTimeUsed - b.totalTimeUsed
-      );
-
-      localStorage.setItem("mbd_leaderboard_v6", JSON.stringify(data.slice(0, 10)));
-      return attemptNo;
-    }
-
-    function loadLeaderboard() {
-      leaderboard = JSON.parse(localStorage.getItem("mbd_leaderboard_v6") || "[]");
-      renderLeaderboard();
-    }
-
-    function renderLeaderboard() {
-      const box = document.getElementById("leaderboard");
-
-      if (!leaderboard.length) {
-        box.innerHTML = `
-          <div class="leader-item">
-            <span class="rank-pill">-</span>
-            <span class="leader-name">Belum ada data</span>
-            <span class="leader-score">0</span>
-          </div>`;
-        return;
+      try {
+        await fetch(SHEET_WEBAPP_URL, {
+          method: "POST",
+          mode: "no-cors",
+          body: payload
+        });
+      } catch (err) {
+        console.error("Gagal kirim ke Sheet:", err);
       }
-
-      box.innerHTML = leaderboard.map((row, idx) => `
-        <div class="leader-item">
-          <div class="rank-pill">${idx + 1}</div>
-          <div class="leader-name">
-            ${row.name}
-            <div style="font-size:.86rem;color:rgba(255,255,255,.68);font-weight:600;margin-top:2px;">
-              ${row.email || "-"} · Percobaan #${row.attemptNo} · Akurasi ${row.accuracyScore}/100 · Speed ${row.speedScore}/100
-            </div>
-            <div style="font-size:.82rem;color:rgba(255,255,255,.58);font-weight:600;margin-top:2px;">
-              Benar ${row.totalCorrect}/${row.totalQuestions} · ${row.totalTimeUsed} dtk
-            </div>
-          </div>
-          <div class="leader-score">${row.score}</div>
-        </div>
-      `).join("");
     }
 
     function endGame() {
@@ -2229,11 +2086,108 @@
       document.getElementById("categoryDesc").textContent = category.desc;
       document.getElementById("categoryTitle").className = `category-title ${category.className}`;
 
-      const attemptNo = saveLeaderboard(s);
+      saveLeaderboard(s);
+      sendToSheet(s);
       loadLeaderboard();
       renderLeaderboard();
       renderResponseLog();
-      sendToSheet(s, attemptNo);
+    }
+
+    function getCategory(finalScore) {
+      if (finalScore >= 85) {
+        return {
+          title: "🟢 SANGAT CEPAT & TEPAT",
+          desc: "Kinerja sangat baik. Ketepatan jawaban dan kecepatan respon sama-sama tinggi.",
+          className: "good"
+        };
+      }
+
+      if (finalScore >= 70) {
+        return {
+          title: "🟡 CUKUP CEPAT & TEPAT",
+          desc: "Kemampuan cukup baik, namun masih bisa ditingkatkan pada bagian kecepatan atau ketelitian.",
+          className: "warn"
+        };
+      }
+
+      return {
+        title: "🔴 PERLU LATIHAN",
+        desc: "Kecepatan dan ketepatan masih perlu ditingkatkan, terutama pada level dengan jumlah klik lebih banyak.",
+        className: "bad"
+      };
+    }
+
+    function getNextAttemptNumber() {
+      const current = Number(localStorage.getItem("mbd_attempt_counter_v1") || "0");
+      const next = current + 1;
+      localStorage.setItem("mbd_attempt_counter_v1", String(next));
+      return next;
+    }
+
+    function saveLeaderboard(summary) {
+      const playerName = document.getElementById("playerName").value.trim() || "Player";
+      const playerEmail = document.getElementById("playerEmail").value.trim() || "-";
+      const data = JSON.parse(localStorage.getItem("mbd_leaderboard_v6") || "[]");
+      const attemptNo = getNextAttemptNumber();
+
+      data.push({
+        name: playerName,
+        email: playerEmail,
+        attemptNo,
+        score: summary.finalScore,
+        accuracyScore: summary.accuracyScore,
+        speedScore: summary.speedScore,
+        totalCorrect: summary.totalCorrect,
+        totalQuestions: summary.totalQuestions,
+        totalTimeUsed: summary.totalTimeUsed,
+        totalSkipped: summary.totalSkipped,
+        avgResponseMs: Math.round(average(summary.levelDetails.map(x => x.avgResponseMs))),
+        time: new Date().toLocaleString("id-ID")
+      });
+
+      data.sort((a, b) =>
+        b.score - a.score ||
+        b.accuracyScore - a.accuracyScore ||
+        b.speedScore - a.speedScore ||
+        a.totalTimeUsed - b.totalTimeUsed
+      );
+
+      localStorage.setItem("mbd_leaderboard_v6", JSON.stringify(data.slice(0, 10)));
+    }
+
+    function loadLeaderboard() {
+      leaderboard = JSON.parse(localStorage.getItem("mbd_leaderboard_v6") || "[]");
+      renderLeaderboard();
+    }
+
+    function renderLeaderboard() {
+      const box = document.getElementById("leaderboard");
+
+      if (!leaderboard.length) {
+        box.innerHTML = `
+          <div class="leader-item">
+            <span class="rank-pill">-</span>
+            <span class="leader-name">Belum ada data</span>
+            <span class="leader-score">0</span>
+          </div>`;
+        return;
+      }
+
+      box.innerHTML = leaderboard.map((row, idx) => `
+        <div class="leader-item">
+          <div class="rank-pill">${idx + 1}</div>
+          <div class="leader-name">
+            ${row.name}
+            <div style="font-size:.86rem;color:rgba(255,255,255,.68);font-weight:600;margin-top:2px;">
+              ${row.email || "-"} · Percobaan #${row.attemptNo} · Akurasi ${row.accuracyScore}/100 · Speed ${row.speedScore}/100
+            </div>
+            <div style="font-size:.82rem;color:rgba(255,255,255,.58);font-weight:600;margin-top:2px;">
+              Benar ${row.totalCorrect}/${row.totalQuestions} · ${row.totalTimeUsed} dtk
+            </div>
+          </div>
+          <div class="leader-score">${row.score}</div>
+        </div>
+      `).join("");
     }
 
     async function shareScore() {
