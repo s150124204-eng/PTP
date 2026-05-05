@@ -1447,7 +1447,7 @@
   </div>
 
   <script>
-    const SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwBlNrjOphZnpbbfjogOoQkbq5mFCZ72Gs-UeECXWZgiGy6JU3DzPln52OwOpL8BAkcPA/exec";
+    const SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzokm3uwuqoQACnwjo9kASpOlUJfN-QQQqeOkYiQBQOmiKP7ZSC53AIhSLsecy6JaGkOQ/exec";
 
     const levelConfig = [
       { questions: 15, time: 40, requiredClicks: 1, label: "Level 1", maxScore: 30 },
@@ -1549,6 +1549,34 @@
       }));
     }
 
+    function buildLevelQuestionPayload(levelIndex) {
+      const logs = levelQuestionLogs[levelIndex] || [];
+
+      return logs.map(q => ({
+        q: q.questionNo || 0,
+        answer: Array.isArray(q.clicks) ? q.clicks.map(c => c.pressed).filter(Boolean).join("|") : "",
+        key: Array.isArray(q.targets) ? q.targets.join("|") : "",
+        result: q.skipped ? "dilewati" : (q.correct ? "benar" : "salah"),
+        correct: !!q.correct,
+        skipped: !!q.skipped,
+        clicks: q.clicks || [],
+        targets: q.targets || [],
+        totalResponseMs: q.totalResponseMs || 0
+      }));
+    }
+
+    function buildQuestionString(list, field) {
+      return (list || [])
+        .slice(0, 15)
+        .map(item => {
+          if (!item) return "";
+          const val = item[field];
+          if (Array.isArray(val)) return val.join("|");
+          return String(val ?? "");
+        })
+        .join("||");
+    }
+
     function buildLeaderboardSnapshot() {
       return JSON.parse(localStorage.getItem("mbd_leaderboard_v6") || "[]");
     }
@@ -1561,12 +1589,17 @@
       const l2 = summary.levelDetails?.[1] || {};
       const l3 = summary.levelDetails?.[2] || {};
 
+      const level1Questions = buildLevelQuestionPayload(0);
+      const level2Questions = buildLevelQuestionPayload(1);
+      const level3Questions = buildLevelQuestionPayload(2);
+
       const params = new URLSearchParams({
         source: "MatchByDirection",
         localTime: new Date().toLocaleString("id-ID"),
         playerName,
         playerEmail,
         attemptNo: String(attemptNo ?? ""),
+
         finalScore: String(summary.finalScore ?? 0),
         accuracyScore: String(summary.accuracyScore ?? 0),
         speedScore: String(summary.speedScore ?? 0),
@@ -1577,26 +1610,30 @@
         totalAllowedTime: String(summary.totalAllowedTime ?? 0),
         totalTimeUsed: String(summary.totalTimeUsed ?? 0),
         avgResponseMs: String(Math.round(average(summary.levelDetails.map(x => x.avgResponseMs || 0)))),
+
         level1_correct: String(l1.correct ?? 0),
         level1_wrong: String(l1.wrong ?? 0),
         level1_skipped: String(l1.skipped ?? 0),
         level1_accuracy: String(l1.accuracyScore ?? 0),
         level1_speed: String(l1.speedScore ?? 0),
         level1_avgResponseMs: String(l1.avgResponseMs ?? 0),
+        level1_questions: JSON.stringify(level1Questions),
+
         level2_correct: String(l2.correct ?? 0),
         level2_wrong: String(l2.wrong ?? 0),
         level2_skipped: String(l2.skipped ?? 0),
         level2_accuracy: String(l2.accuracyScore ?? 0),
         level2_speed: String(l2.speedScore ?? 0),
         level2_avgResponseMs: String(l2.avgResponseMs ?? 0),
+        level2_questions: JSON.stringify(level2Questions),
+
         level3_correct: String(l3.correct ?? 0),
         level3_wrong: String(l3.wrong ?? 0),
         level3_skipped: String(l3.skipped ?? 0),
         level3_accuracy: String(l3.accuracyScore ?? 0),
         level3_speed: String(l3.speedScore ?? 0),
         level3_avgResponseMs: String(l3.avgResponseMs ?? 0),
-        responseLog: JSON.stringify(buildResponseLogText()),
-        leaderboardSnapshot: JSON.stringify(buildLeaderboardSnapshot())
+        level3_questions: JSON.stringify(level3Questions)
       });
 
       try {
